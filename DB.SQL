@@ -59,6 +59,8 @@ CREATE TABLE IF NOT EXISTS `members` (
   `JoinedDate` date NOT NULL,
   `Attendance` text CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `LastPromotionDate` date NOT NULL,
+  `PromotionHistory` varchar(125) NOT NULL,
+  `RequestedMaxRank` int(11) NOT NULL,
   PRIMARY KEY (`memberID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=106 ;
 

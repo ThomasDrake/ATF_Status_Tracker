@@ -51,17 +51,31 @@
 
 		echo '<table border=1>';
 		echo '<tr style="background-color: #c0c0c0;"><td>Member Name</td><td>' . $row['Name'] . '</td></tr>';
-
 		echo '<tr><td>Rank</td><td>' . Get_Rank_Name($mysqli, $row['Rank']) . '</td></tr>';
-
 		echo '<tr style="background-color: #c0c0c0;"><td>Join Date</td><td>' . $row['JoinedDate'] . '</td></tr>';
-
-		echo '<tr><td>Last Promotion Date</td><td>' . $row['LastPromotionDate'] . '</td></tr>';
-
-		echo '<tr style="background-color: #c0c0c0;"><td>Next Promotion Date</td>';
-		echo '<td colspan>' . Get_Next_Possible_Promo_Date($mysqli, $row['LastPromotionDate'], $row['Rank']) . '</td></tr>';
-
+		echo '<tr><td>Highest Possible Rank</td><td>' . Get_Rank_Name($mysqli, $row['RequestedMaxRank']) . '</td></tr>';
 		echo '</table><br>';
+
+		$history = Get_Promotion_History($mysqli, $row["PromotionHistory"]);
+		echo "<table border=1>\n";
+		echo "<tr>\n";
+		for($i = 0; $i < count($history); $i+=2)
+		{
+			echo "<td>" . Get_Rank_Name($mysqli, $history[$i]) . "</td>\n";
+			if($i < 8)
+				echo "<td> ></td>";
+		}
+		echo "</tr>\n";
+		echo "<tr>\n";
+		for($i = 0; $i < count($history); $i+=2)
+		{
+			echo "<td>" . $history[$i+1] . "</td>\n";
+			echo "<td>" . Get_Next_Possible_Promo_Date($mysqli, $history[$i+1], $history[$i]) . "</td>\n";
+
+		}
+		echo "</tr>\n";
+		echo "</table><br>\n";
+
 
 		echo '<table border=1>';
 		$rowcolor = false;

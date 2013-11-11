@@ -1,40 +1,94 @@
 <?php
 	include('function-library.php');
 
+	/**
+	 * Using the parameters, update the record for the $person.
+	 */
 	function update_single_person_attendance($mysqli, $person, $input)
 	{
-
 		$result = $mysqli->query("SELECT * FROM `members` WHERE `Name` = '$person'");
 		$row = $result->fetch_array(MYSQLI_ASSOC);
 		$result2 = $row["Attendance"];
 
-		if(strtotime($input["JoinDate"]) !== false)
-			$mysqli->query("UPDATE `members` SET `JoinDate`='" . $input["JoinDate"] . "' WHERE `Name` = '$person'");
-
-		if(strtotime($input["LastPromoDate"]) !== false)
-			$mysqli->query("UPDATE `members` SET `LastPromotionDate`='" . $input["LastPromoDate"] . "' WHERE `Name` = '$person'");
-
+		/**
+		 * Update the Rank based on the input
+		 */
 		$mysqli->query("UPDATE `members` SET `Rank`='" . $input["rank"] . "' WHERE `Name` = '$person'");
 
+		/**
+		 * Check the validity of the input JoinedDate before updating the record
+		 */
+		if(strtotime($input["JoinedDate"]) !== false)
+			$mysqli->query("UPDATE `members` SET `JoinedDate`='" . $input["JoinedDate"] . "' WHERE `Name` = '$person'");
+
+		/**
+		 * Update the RequestedMaxRank based on the input
+		 */
+		$mysqli->query("UPDATE `members` SET `RequestedMaxRank`=" . $input["requestedmaxrank"] . " WHERE `Name` = '$person'");
+
+		/**
+		 * Go through the inputs checking for inputs whose index is a number and who's values are dates
+		 */
+		$string = "";
+		foreach($input as $rank => $date)
+		{
+			if(is_numeric($rank) === true && strtotime($date) !== false)
+			{
+				if( $input["rank"] >= $rank)
+				{
+					if($string === "")
+						$string = $string . $rank . ":" . $date;
+					else
+						$string = $string . "&" . $rank . ":" . $date;
+				}
+			}
+		}
+		$mysqli->query("UPDATE `members` SET `PromotionHistory`='$string' WHERE `Name` = '$person'");
+
+		/**
+		 * Go through the inputs checking for inputs whose index is a date and whose value is a numeric
+		 *  with a value of either 1 or 2
+		 */
 		foreach ($input as $date => $attended )
 		{
-			if($attended === "2" && strpos($result2, $date) !== false)
+			if(strtotime($date) !== false && is_numeric($attended) === true && ($attended == 1 || $attended == 2))
 			{
-				$result2 = str_replace($date . ":", "", $result2);
+				/**
+				 * If $attended is 2 (absent) and the date associated with it is contained in the attendance string
+                 *  then the date entry in the attendance string needs to be removed
+				 */
+				if($attended === "2" && strpos($result2, $date) !== false)
+					$result2 = str_replace($date . ":", "", $result2);
+
+				/**
+				 * if $attend is '1' (present) and the date associated with it is not contained in the attendance
+				 *  string, then it needs to be appended to the list. Sorting it into this correct place will be
+				 *  handled in one of the code sections below.
+				 */
+				elseif($attended === "1" && strpos($result2, $date) === false)
+					$result2 = $result2 . "$date:";
 			}
-			elseif($attended === "1" && strpos($result2, $date) === false)
-				$result2 = $result2 . "$date:";
 		}
 
+		/**
+		 * Create an array of the dates and then sort them using uksort.
+		 */
 		$pastdates = explode(':', $result2);
-		uksort($pastdates, strcmp);
+		uksort($pastdates, "strcmp");
 
+		/**
+		 * Recombine the array of dates back into a single string
+		 */
 		$result = "";
 		foreach($pastdates as $date)
 		{
 			if($date !== "")
 				$result = $result . "$date:";
 		}
+
+		/**
+		 * Update the Attendance field back into the database
+		 */
 		$mysqli->query("UPDATE `members` SET `Attendance`='$result' WHERE `Name` = '$person'");
 		return;
 	}
@@ -49,7 +103,6 @@
 		echo "<form name='input' action='edit.php' method='post'>\n";
 
 		echo "<input type='hidden' name='updated' value='$person'>";
-
 		echo '<table border=1>';
 		echo '<tr style="background-color: #c0c0c0;"><td>Member Name</td><td>' . $row['Name'] . '</td></tr>';
 		echo '<tr><td>Rank</td><td>';
@@ -63,19 +116,52 @@
 				echo "selected='selected'";
 			echo ">" . $row2["RankName"] . "</option>\n";
 		}
-		echo "</select>";
+		echo "</select>\n";
 
-		echo '</td></tr>';
+		echo "</td></tr>\n";
 
 		echo '<tr style="background-color: #c0c0c0;"><td>Join Date</td>';
-		echo '<td><input type="date" name="JoinDate" value="' . $row['JoinedDate'] . '"></td></tr>';
+		echo '<td><input type="date" name="JoinedDate" value="' . $row['JoinedDate'] . '"></td></tr>';
 
-		echo '<tr><td>Last Promotion Date</td><td><input type="date" name="LastPromoDate" value="' . $row['LastPromotionDate'] . '"></td></tr>';
+		echo '<tr><td>Highest Possible Rank</td><td>';
 
-		echo '<tr style="background-color: #c0c0c0;"><td>Next Promotion Date</td>';
-		echo '<td colspan>' . Get_Next_Possible_Promo_Date($mysqli, $row['LastPromotionDate'], $row['Rank']) . '</td></tr>';
+		$result2 = $mysqli->query("SELECT * FROM `ranks` ORDER BY `RankID`");
+		echo "<select name='requestedmaxrank'>\n";
+		while($row2 = $result2->fetch_array(MYSQLI_ASSOC))
+		{
+			echo "<option value='" . $row2["RankID"] . "' ";
+			if($row2["RankID"] === $row["RequestedMaxRank"])
+				echo "selected='selected'";
+			echo ">" . $row2["RankName"] . "</option>\n";
+		}
+		echo "</select>\n";
 
+		echo "</td></tr>\n";
 
+		echo "</table><br>\n\n";
+
+		$history = Get_Promotion_History($mysqli, $row["PromotionHistory"]);
+		echo "<table border=1>\n";
+		echo "<tr><td colspan=100>Promotion History</td></tr>";
+		echo "<tr>\n";
+		for($i = 0; $i < count($history); $i+=2)
+		{
+			echo "<td>" . Get_Rank_Name($mysqli, $history[$i]) . "</td>\n";
+			if($i < 8)
+				echo "<td> ></td>";
+		}
+		echo "</tr>\n";
+		echo "<tr>\n";
+		for($i = 0; $i < count($history); $i+=2)
+		{
+			echo "<td><input type='date' name='". $history[$i] ."' value='" . $history[$i+1] . "'></td>\n";
+			echo "<td>" . Get_Next_Possible_Promo_Date($mysqli, $history[$i+1], $history[$i]) . "</td>\n";
+
+		}
+		echo "</tr>\n";
+		echo "</table><br>\n\n";
+
+		echo "<table border=1>\n";
 		$rowcolor = false;
 		foreach($possibledates as $date)
 		{
@@ -104,9 +190,9 @@
 			echo "</td></tr>";
 		}
 		echo "</table>";
-		echo "<input type='submit' value='submit'>\n";
-		echo "</form>";		
+		echo "<input type='submit' value='submit'><br>\n";
 		echo "<a href='index.php'>Return to Main Menu</a>";
+		echo "</form>";		
 	}
 
 	
