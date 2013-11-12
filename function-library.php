@@ -25,22 +25,37 @@ define("DEBUG", false);
 		return $mysqli;
 	}
 
-	function Get_Promotion_History($mysqli, $history)
+	function Get_Promotion_History($mysqli, $history, $rank)
 	{
 		$finalset = array();
 
 		if($history === "")
 		{
-			array_push($finalset, "1", "no history available");
-			return $finalset;
+			for($i = 1; $i <= $rank; $i = $i + 1)
+				array_push($finalset, $i, "");
 		}
-
-		$history_list = explode("&", $history);
-
-		foreach($history_list as $set)
+		else
 		{
-			$array = explode(":", $set);
-			array_push($finalset, $array[0], $array[1]);
+			$history_list = explode("&", $history);
+
+			$i = 1;
+
+			foreach($history_list as $set)
+			{
+				$array = explode(":", $set);
+				if($i === $array[0])
+					$i++;
+				else
+				{
+					while($i < $array[0])
+					{
+						array_push($finalset, $i, "");
+						$i++;
+					}
+				}
+				array_push($finalset, $array[0], $array[1]);
+			
+			}
 		}
 		return $finalset;
 	}

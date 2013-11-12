@@ -140,23 +140,30 @@
 
 		echo "</table><br>\n\n";
 
-		$history = Get_Promotion_History($mysqli, $row["PromotionHistory"]);
+		$history = Get_Promotion_History($mysqli, $row["PromotionHistory"], $row["Rank"]);
 		echo "<table border=1>\n";
-		echo "<tr><td colspan=100>Promotion History</td></tr>";
 		echo "<tr>\n";
 		for($i = 0; $i < count($history); $i+=2)
 		{
 			echo "<td>" . Get_Rank_Name($mysqli, $history[$i]) . "</td>\n";
-			if($i < 8)
+			if($i < 16)
 				echo "<td> ></td>";
 		}
 		echo "</tr>\n";
 		echo "<tr>\n";
 		for($i = 0; $i < count($history); $i+=2)
 		{
-			echo "<td><input type='date' name='". $history[$i] ."' value='" . $history[$i+1] . "'></td>\n";
-			echo "<td>" . Get_Next_Possible_Promo_Date($mysqli, $history[$i+1], $history[$i]) . "</td>\n";
+			if($history[$i+1] !== "")
+			{
+				echo "<td><input type='date' name='". $history[$i] ."' value='" . $history[$i+1] . "'></td>\n";
+				echo "<td>" . Get_Next_Possible_Promo_Date($mysqli, $history[$i+1], $history[$i]) . "</td>\n";
 
+			}
+			else
+			{
+				echo "<td><input type='date' name='". $history[$i] ."' value=''></td>\n";
+				echo "<td>TBD</td>\n";
+			}
 		}
 		echo "</tr>\n";
 		echo "</table><br>\n\n";
