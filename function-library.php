@@ -29,6 +29,12 @@ define("DEBUG", false);
 	{
 		$finalset = array();
 
+		if($history === "")
+		{
+			array_push($finalset, "1", "no history available");
+			return $finalset;
+		}
+
 		$history_list = explode("&", $history);
 
 		foreach($history_list as $set)
@@ -110,6 +116,9 @@ define("DEBUG", false);
 
 	function Get_Last_Promo_Date($history)
 	{
+		if($history === "")
+			return "No Promotion History";
+
 		$promo_history_array = explode(":", $history);
 
 		$length = count($promo_history_array);
