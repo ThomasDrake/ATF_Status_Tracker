@@ -43,7 +43,7 @@ define("DEBUG", false);
 			foreach($history_list as $set)
 			{
 				$array = explode(":", $set);
-				if($i === $array[0])
+				if($i === intval($array[0]))
 					$i++;
 				else
 				{
