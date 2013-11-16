@@ -25,6 +25,33 @@ define("DEBUG", false);
 		return $mysqli;
 	}
 
+	function check_for_years_in_meeting_table($mysqli)
+	{
+		$year = intval(date("Y")) - 1;
+
+		for($i = 0; $i < 3; $i++)
+		{
+			$result = $mysqli->query("SELECT * FROM `meetings` WHERE `Year`=$year");
+			if($result !== false && $result->num_rows === 0)
+			{
+				$meetingdates = "";
+
+				for($month = 1; $month < 13; $month++)
+				{
+					$dates = get_sunday_meetings_by_month_year($year, $month);
+					if($month == 12)
+						$meetingdates = $meetingdates . "$dates[0]:" . "$dates[1]";
+					else
+						$meetingdates = $meetingdates . "$dates[0]:" . "$dates[1]:";
+				}
+
+				$mysqli->query("INSERT INTO `meetings` (Year, Dates) VALUES ($year, '$meetingdates')");
+			}
+			$year++;
+		}
+	}
+
+
 	function Get_Promotion_History($mysqli, $history, $rank)
 	{
 		$finalset = array();

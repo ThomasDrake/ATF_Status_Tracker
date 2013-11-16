@@ -10,7 +10,7 @@
 				array_push($meeting_date_array, $date);
 		}
 
-		uksort($meeting_date_array, strcmp);
+		sort($meeting_date_array, strcmp);
 
 		$final_meeting_string = "";
 		foreach($meeting_date_array as $date)
@@ -98,11 +98,15 @@
 		process_meetings_updates_for_year($mysqli, $_POST['year'], $_POST);
 		header("Location: index.php");
 	}	
+
 	elseif(isset($_POST['action_category']) && $_POST['action_category'] === "edit_year")
 		display_meetings_in_year($mysqli, $_POST['year']);
-	else
-		display_years_for_editing($mysqli);
 
+	else
+	{
+		check_for_years_in_meeting_table($mysqli);
+		display_years_for_editing($mysqli);
+	}
 	$mysqli->close();
 
 ?>

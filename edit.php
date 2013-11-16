@@ -71,10 +71,10 @@
 		}
 
 		/**
-		 * Create an array of the dates and then sort them using uksort.
+		 * Create an array of the dates and then sort them using sort.
 		 */
 		$pastdates = explode(':', $result2);
-		uksort($pastdates, "strcmp");
+		sort($pastdates, "strcmp");
 
 		/**
 		 * Recombine the array of dates back into a single string

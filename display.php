@@ -39,9 +39,11 @@
 		echo "</table>";
 	}
 
-	function display_attendance_for_one_person($mysqli, $possibledates, $person)
+	function display_attendance_for_one_person($mysqli, $person)
 	{
 		$possibledates = get_past_meeting_dates($mysqli, intval(date("Y")));
+		$lastyear = get_past_meeting_dates($mysqli, intval(date("Y"))-1);
+
 
 		$result = $mysqli->query("SELECT * FROM `members` WHERE `Name`='$person'");
 		$row = $result->fetch_array(MYSQLI_ASSOC);
@@ -82,8 +84,30 @@
 		echo "</tr>\n";
 		echo "</table><br>\n";
 
+		echo '<div>';
 
-		echo '<table border=1>';
+		echo '<table style="float: left;" border=1>';
+		$rowcolor = false;
+		foreach($lastyear as $date)
+		{
+			if($rowcolor)
+				echo '<tr style="background-color: #c0c0c0;">';
+			else
+				echo '<tr>';
+			$rowcolor = !$rowcolor;
+
+
+			echo "<td>$date</td><td>";
+			if(strpos($row["Attendance"],$date) === false)
+				echo "Absent";
+			else
+				echo "Present";
+			echo "</td></tr>";
+		}
+		echo "</table>";
+
+
+		echo '<table style="float: left;" border=1>';
 		$rowcolor = false;
 		foreach($possibledates as $date)
 		{
@@ -102,6 +126,8 @@
 			echo "</td></tr>";
 		}
 		echo "</table>";
+
+		echo '</div>';
 		echo "<input type='submit' value='edit'>\n";
 		echo "</form>";		
 		echo "<a href='index.php'>Return to Main Menu</a>";
@@ -114,7 +140,7 @@
 
 	if(isset($_GET['person']))
 	{
-		display_attendance_for_one_person($mysqli, $possibledates, $_GET['person']);
+		display_attendance_for_one_person($mysqli, $_GET['person']);
 	}
 	elseif(isset($_GET['l'])&&isset($_GET['h']))
 	{

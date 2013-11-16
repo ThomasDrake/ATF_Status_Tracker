@@ -26,7 +26,7 @@
 			if($found == 0)
 			{
 				array_push($pastdates , $_POST['thedate']);
-				uksort($pastdates, strcmp);
+				sort($pastdates, strcmp);
 
 				foreach($pastdates as $entry)
 				{

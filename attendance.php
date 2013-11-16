@@ -72,7 +72,7 @@
 				if($found == 0)
 				{
 					array_push($pastdates , $process_date);
-					uksort($pastdates, strcmp);
+					sort($pastdates, strcmp);
 
 					foreach($pastdates as $entry)
 					{
