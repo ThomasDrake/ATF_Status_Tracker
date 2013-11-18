@@ -1,6 +1,9 @@
 <?php
 	include('function-library.php');
 
+	/**
+	 * 
+	 */
 	function Get_Two_Week_Array_By_Month($DateList)
 	{
 		$month_array = array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
@@ -19,7 +22,34 @@
 		return $month_array;
 	}
 
-	function Update_Members_Two_Week_History($mysqli, $person, $date)
+	/**
+     *
+     */
+	function Update_Members_Two_Week_History($mysqli, $person, $input)
+	{
+		$string = "";
+
+		foreach($input as $index => $value)
+		{			
+			if(strtotime($index) !== false && is_numeric($value))
+			{
+				if($value === "2")
+				{
+					if($string === "")
+						$string = $index;
+					else
+						$string = $string . ":$index";
+				}
+			}
+		}
+
+		$mysqli->query("UPDATE `members` SET `TwoWeekList`='$string' WHERE `Name`='$person'");		
+	}
+
+	/**
+	 * 
+	 */
+	function Add_To_Members_Two_Week_History($mysqli, $person, $date)
 	{
 		$result = $mysqli->query("SELECT * FROM `members` WHERE `Name` = '$person'");
 		if($result !== false && $result->num_rows !== 0)
@@ -36,6 +66,8 @@
 
 					array_push($list, $reformatted_date);
 
+					sort($list);
+
 					$string = "";
 					foreach($list as $i)
 					{
@@ -45,12 +77,59 @@
 							$string = $string . ":" . $i;
 					}
 
-					$result2 = $mysqli->query("UPDATE `members` SET `TwoWeekList`='$string' WHERE `Name`='$person'");
+					$mysqli->query("UPDATE `members` SET `TwoWeekList`='$string' WHERE `Name`='$person'");
 				}
 			}
 		}
 	}
 
+	/**
+	 * 
+	 */
+	function Display_Members_Two_Week_Violations($mysqli, $person)
+	{
+		$result = $mysqli->query("SELECT * FROM `members` WHERE `Name` = '$person'");
+		$row = $result->fetch_array(MYSQLI_ASSOC);
+		
+		if($row["TwoWeekList"] === "")
+			return false;
+
+		$week_array = explode(":", $row["TwoWeekList"]);
+	
+		echo "<form name='input' action='twoweeklist.php' method='post'>\n";
+		echo "<input type='hidden' name='person' value='$person'>\n";
+		echo "<input type='hidden' name='action' value='update-violations'>\n";
+
+		echo "<table border=1>\n";
+	
+		foreach($week_array as $date)
+		{
+			if($date === "")
+				continue;
+
+			echo "<tr>";
+			echo "<td>$date</td>\n";
+
+
+			echo "<td>\n";
+			echo "<input type='radio' name='$date' value='2' checked='checked'>Keep\n";
+			echo "<input type='radio' name='$date' value='1'>Remove\n";
+			echo "</td>\n";
+
+			echo "</tr>\n";
+			
+		}
+
+		echo "</table>\n";
+		echo "<input type='submit' value='submit'>\n";
+		echo "</form><br>\n";
+		echo "<a href='index.php'>Return to Main Menu</a>";
+		return true;
+	}
+
+	/**
+	 * 
+	 */
 	function Display_Members_Two_Week_History($mysqli, $person)
 	{
 		$result = $mysqli->query("SELECT * FROM `members` WHERE `Name` = '$person'");
@@ -82,13 +161,27 @@
 		echo "</tr>\n";
 		echo "</table>\n";
 
-		echo "<input type='date' name='new_twoweek_violation' value='YYYY-MM-DD'><br>\n";
+		echo "<table border=0>\n";
+		echo "<tr>\n";
+		echo "<td>Input Date of Two Week Violation</td>\n";
+		echo "<td><input type='date' name='new_twoweek_violation' value='YYYY-MM-DD'></td>\n";
+		echo "<tr>\n";
 
-		echo "<input type='submit' value='submit'>\n";
+		echo "<tr>\n";
+		echo "<td></td>\n";
+		echo "<td><input type='submit' name='submit' value='submit'></td>\n";
+		echo "</tr>\n";
+		echo "</table>\n";
+
+		if($row["TwoWeekList"] !== "")
+			echo "<input type='submit' name='submit' value='edit'>\n";
 		echo "</form>\n";
+		echo "<a href='index.php'>Return to Main Menu</a>";
 	}
 
-
+	/**
+	 * 
+	 */
 	function Display_Two_Week_List($mysqli)
 	{
 		$result = $mysqli->query("SELECT * FROM `members` ORDER BY `Rank`, `Name`");
@@ -125,23 +218,33 @@
 		echo "<a href='index.php'>Return to Main Menu</a>\n";
 	}
 
-
+	/**
+	 * 
+	 */
 	$mysqli = connect_to_mysql();
 	if(isset($_GET['person']))
 	{
 		Display_Members_Two_Week_History($mysqli, $_GET["person"]);	
 	}
 
+	elseif(isset($_POST["submit"]) && ($_POST["submit"] === "edit"))
+	{
+		if(!Display_Members_Two_Week_Violations($mysqli, $_POST["person"]))
+			Display_Members_Two_Week_History($mysqli, $_POST["person"]);
+	}
+
 	elseif(isset($_POST["new_twoweek_violation"]))
 	{
-		Update_Members_Two_Week_History($mysqli, $_POST["person"], $_POST["new_twoweek_violation"]);
+		Add_To_Members_Two_Week_History($mysqli, $_POST["person"], $_POST["new_twoweek_violation"]);
 		Display_Members_Two_Week_History($mysqli, $_POST["person"]);
-		header("Location: index.php");
+		header("Location: twoweeklist.php?person=" . $_POST["person"]);
 	}
-	elseif(isset($_POST["action"]) && $_POST["action"] == "")
+	elseif(isset($_POST["action"]) && $_POST["action"] == "update-violations")
 	{
-		Update_Members_Two_Week_History($mysqli, $_POST[""], $_POST);
+		Update_Members_Two_Week_History($mysqli, $_POST["person"], $_POST);
+		header("Location: twoweeklist.php?person=" . $_POST["person"]);
 	}
+
 	else
 	{
 		Display_Two_Week_List($mysqli);
