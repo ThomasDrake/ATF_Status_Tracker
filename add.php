@@ -25,7 +25,7 @@
 		return true;
 	}
 
-	function validate_rank($mysqli, $joindate)
+	function validate_rank($mysqli, $rank)
 	{
 		$result = $mysqli->query("SELECT * FROM `ranks` WHERE `RankID`='$rank'");
 		if($result === false)
