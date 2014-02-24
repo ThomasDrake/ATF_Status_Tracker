@@ -25,6 +25,13 @@ define("DEBUG", false);
 		return $mysqli;
 	}
 
+	/**
+	 * @brief Checks the meetings table to see if the last year, the current year and
+	 *        the next year exist in the database. If they do not, will create the
+     * 		  entries in the meetings table.
+	 *
+	 * @retval None
+	 */
 	function check_for_years_in_meeting_table($mysqli)
 	{
 		$year = intval(date("Y")) - 1;
@@ -51,7 +58,11 @@ define("DEBUG", false);
 		}
 	}
 
-
+	/**
+	 * @brief Get an array of the current memeber's promotion history.
+	 *
+	 * @retval Returns an array of Rank, date pairs 
+	 */
 	function Get_Promotion_History($mysqli, $history, $rank)
 	{
 		$finalset = array();
@@ -87,6 +98,12 @@ define("DEBUG", false);
 		return $finalset;
 	}
 
+	/**
+	 * @brief Given the passed $lastpromodate and the $currentrank, return the next
+	 *        possible date that a promotion can occur
+	 *
+	 * @retval Returns the date string of the next possible promo date
+	 */
 	function Get_Next_Possible_Promo_Date($mysqli, $lastpromodate, $currentrank)
 	{
 		if($currentrank == 8)
@@ -189,16 +206,14 @@ define("DEBUG", false);
 	{
 		$return_array = array();
 
-		$sundays = 0;
-
 		for($day = 1; $day < 23; $day = $day + 1)
 		{
 			if(strftime("%A", strtotime("$year-$month-$day")) == 'Sunday')
 			{
-				if($sundays == 0 || $sundays == 2)
-					array_push($return_array, strftime("%Y-%m-%d", strtotime("$year-$month-$day")));
+				array_push($return_array, strftime("%Y-%m-%d", strtotime("$year-$month-$day")));
 
-				$sundays = $sundays + 1;
+				$day = $day + 14;
+				array_push($return_array, strftime("%Y-%m-%d", strtotime("$year-$month-$day")));
 			}
 		}
 		return $return_array;
@@ -235,4 +250,91 @@ define("DEBUG", false);
 		}
 		return $possibledates;
 	}
+
+	function Get_Past_Eight_Meetings($mysqli, $year)
+	{
+		$past_meetings = array();
+
+		$result = $mysqli->query("SELECT * FROM `meetings` WHERE `Year` = '$year'");
+		if($result !== false && $result->num_rows !== 0)
+		{
+			$row = $result->fetch_array(MYSQLI_ASSOC);
+
+			$meetingdates = explode(":", $row['Dates']);
+
+			$i = 0;
+			while($i < count($meetingdates))
+			{
+				if(strcmp($meetingdates[$i], date("Y-m-d")) > 0)
+					break;
+
+				$i = $i + 1;
+			}
+			if($i < 8)
+			{
+				$year = $year - 1;
+				$result2 = $mysqli->query("SELECT * FROM `meetings` WHERE `Year` = '$year'");
+				if($result2 !== false && $result2->num_rows !== 0)
+				{
+					$row2 = $result2->fetch_array(MYSQLI_ASSOC);
+					$lastyearsmeetings = explode(":", $row2['Dates']);
+
+					for( $j = (count($lastyearsmeetings) - (8 - $i)); $j < (count($lastyearsmeetings)) ; $j = $j + 1)
+						array_push($past_meetings, $lastyearsmeetings[$j]);
+				}
+				for($j = 0; $j < $i; $j = $j +1)
+					array_push($past_meetings, $meetingdates[$j]);	
+			}
+			else
+			{
+				for($j = $i - 8; $j < $i; $j = $j + 1)
+					array_push($past_meetings, $meetingdates[$j]);
+			}
+
+		}
+
+		return $past_meetings;
+	}
+
+	function Get_Past_Eight_Meeting_Attendance($mysqli, $year, $person)
+	{
+		$attendance = array();
+		$past_meetings = Get_Past_Eight_Meetings($mysqli, $year);
+
+		$result = $mysqli->query("SELECT * FROM `members` WHERE `Name` = '$person'");
+		if($result !== false && $result->num_rows !== 0)
+		{
+			$row = $result->fetch_array(MYSQLI_ASSOC);
+
+			foreach($past_meetings as $date)
+			{
+				if(strpos($row["Attendance"], $date) === false)
+					array_push($attendance, "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
+				else
+					array_push($attendance, $date);
+			}
+		}
+
+		return $attendance;
+	}
+
+	function Get_Two_Week_List($mysqli, $person)
+	{
+		$finalstring = "&nbsp;";
+
+		$result = $mysqli->query("SELECT * FROM `members` WHERE `Name` = '$person'");
+		if($result !== false && $result->num_rows !== 0)
+		{
+			$row = $result->fetch_array(MYSQLI_ASSOC);
+			$twoweeklist = explode(":", $row["TwoWeekList"]);
+
+			foreach($twoweeklist as $infraction)
+			{
+				if( (strftime("%Y", $infraction) === date("Y")) || (strftime("%Y", $infraction) === date("Y")-1) )
+					$finalstring = $finalstring . " " . $twoweeklist;
+			}
+		}
+		return $finalstring;
+	}
+
 ?>

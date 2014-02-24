@@ -107,7 +107,7 @@
 		echo "</table>";
 
 
-		echo '<table style="float: left;" border=1>';
+		echo '<table style="float: left; margin-left: 50;" border=1>';
 		$rowcolor = false;
 		foreach($possibledates as $date)
 		{
@@ -128,9 +128,12 @@
 		echo "</table>";
 
 		echo '</div>';
+
+		echo '<div style="clear:left;">';
 		echo "<input type='submit' value='edit'>\n";
-		echo "</form>";		
+		echo "</form><br>";		
 		echo "<a href='index.php'>Return to Main Menu</a>";
+		echo '</div>';
 
 	}
 

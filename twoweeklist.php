@@ -16,10 +16,30 @@
 			{
 				$month = intval(strftime("%m", strtotime($date)));
 
-				$month_array[$month-1] = $month_array[$month] + 1;
+				$month_array[$month-1] = $month_array[$month-1] + 1;
+
 			}
 		}
 		return $month_array;
+	}
+
+	function Get_Two_Week_String($DateList)
+	{
+		$date_string = "";
+
+		$date_list = explode(":", $DateList);
+		foreach($date_list as $date)
+		{
+			$year = strftime("%Y", strtotime($date));
+			if($year === strftime("%Y"))
+			{
+				if($date_string === "")
+					$date_string = $date;
+				else
+					$date_string = $date_string . ", $date";
+			}
+		}
+		return $date_string;
 	}
 
 	/**
@@ -43,7 +63,18 @@
 			}
 		}
 
-		$mysqli->query("UPDATE `members` SET `TwoWeekList`='$string' WHERE `Name`='$person'");		
+		$mysqli->query("UPDATE `members` SET `TwoWeekList`='$string' WHERE `Name`='$person'");
+
+		$result = $mysqli->query("SELECT * FROM `members` WHERE `Name` = '$person'");
+		if($result !== false && $result->num_rows !== 0)
+		{
+			$row = $result->fetch_array(MYSQLI_ASSOC);
+			if($row["Rank"] >= 3)
+			{
+				$newrank = $row["Rank"];
+				$mysqli->query("UPDATE `members` SET `Rank`='$newrank' WHERE `Name` = '$person'");
+			}
+		}
 	}
 
 	/**
@@ -78,6 +109,41 @@
 					}
 
 					$mysqli->query("UPDATE `members` SET `TwoWeekList`='$string' WHERE `Name`='$person'");
+
+					$rank = $row["Rank"];
+
+					if($rank >= 3)
+					{
+						$newrank = intval($rank) - 1;
+
+						$mysqli->query("UPDATE `members` SET `Rank`='$newrank' WHERE `Name`='$person'");
+
+						$history = explode("&", $row["PromotionHistory"]);
+
+						$rank = $row["Rank"];
+
+						$updatedhistory = "";
+						foreach($history as $entry)
+						{
+							$array = explode(":", $entry);
+							if(intval($array[0]) === intval($newrank))
+							{
+								if($updatedhistory !== "")
+									$updatedhistory = $updatedhistory . "&";
+	
+								$updatedhistory = $updatedhistory . $array[0] . ":" . date("Y-m-d");
+			
+							}	
+							elseif($array[0] < $rank)
+							{
+								if($updatedhistory !== "")
+									$updatedhistory = $updatedhistory . "&";
+
+								$updatedhistory = $updatedhistory . $array[0] . ":" . $array[1];
+							}							
+						}
+						$mysqli->query("UPDATE `members` SET `PromotionHistory`='$updatedhistory' WHERE `Name`='$person'");
+					}
 				}
 			}
 		}
@@ -139,7 +205,7 @@
 
 		echo "<table border=1>\n";
 		echo "<tr>";
-		echo "<th>Name</th><th>Jan</th><th>Feb</th><th>Mar</th><th>Apr</th><th>May</th><th>Jun</th><th>Jul</th><th>Aug</th><th>Sep</th><th>Oct</th><th>Nov</th><th>Dec</th><th>Total</th>\n";
+		echo "<th>Name</th><th>Jan</th><th>Feb</th><th>Mar</th><th>Apr</th><th>May</th><th>Jun</th><th>Jul</th><th>Aug</th><th>Sep</th><th>Oct</th><th>Nov</th><th>Dec</th><th>Total</th><th>Dates</th>\n";
 		echo "</tr>";
 
 		echo "<tr>\n";
@@ -158,6 +224,7 @@
 			$total = $total + intval($val);
 		}
 		echo "<td>$total</td>";
+		echo "<td>" . Get_Two_Week_String($row["TwoWeekList"]) . "</td>";
 		echo "</tr>\n";
 		echo "</table>\n";
 
@@ -188,7 +255,7 @@
 	
 		echo "<table border=1>\n";
 		echo "<tr>";
-		echo "<th>Name</th><th>Jan</th><th>Feb</th><th>Mar</th><th>Apr</th><th>May</th><th>Jun</th><th>Jul</th><th>Aug</th><th>Sep</th><th>Oct</th><th>Nov</th><th>Dec</th><th>Total</th>\n";
+		echo "<th>Name</th><th>Jan</th><th>Feb</th><th>Mar</th><th>Apr</th><th>May</th><th>Jun</th><th>Jul</th><th>Aug</th><th>Sep</th><th>Oct</th><th>Nov</th><th>Dec</th><th>Total</th><th>Dates</th>\n";
 		echo "</tr>";
 
 		while($row = $result->fetch_array(MYSQLI_ASSOC))
@@ -211,6 +278,8 @@
 
 			}
 			echo "<td>$total</td>";
+	
+			echo "<td><p>" . Get_Two_Week_String($row["TwoWeekList"]) . "</p></td>\n";
 			echo "</tr>\n";
 		}
 		echo "</table>\n";
@@ -237,7 +306,7 @@
 	{
 		Add_To_Members_Two_Week_History($mysqli, $_POST["person"], $_POST["new_twoweek_violation"]);
 		Display_Members_Two_Week_History($mysqli, $_POST["person"]);
-		header("Location: twoweeklist.php?person=" . $_POST["person"]);
+//		header("Location: twoweeklist.php?person=" . $_POST["person"]);
 	}
 	elseif(isset($_POST["action"]) && $_POST["action"] == "update-violations")
 	{

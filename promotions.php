@@ -3,41 +3,106 @@
 	include('function-library.php');
 
 
-	function display_members_ready_for_promotions($mysqli)
+	function Promote_Member($mysqli, $person)
 	{
-		echo "<table border=1>";
-		echo "<tr><th>Name</th><th>Rank</th><th>Date of Last Promotion</th><th>Next possible promo date</th></tr>";
-
-		$rowcolor = true;
-
-		$result = $mysqli->query("SELECT * FROM `members` ORDER BY `Rank`,`Name`");
-		while($row = $result->fetch_array(MYSQLI_ASSOC))
+		$result = $mysqli->query("SELECT * FROM `members` WHERE `Name` = '$person'");
+		if($result !== false && $result->num_rows !== 0)
 		{
-			if($row["Rank"] < $row["RequestedMaxRank"])
-			{
-				$promodate = Get_Next_Possible_Promo_Date($mysqli, Get_Last_Promo_Date($row["PromotionHistory"]), $row["Rank"]);
+			$row = $result->fetch_array(MYSQLI_ASSOC);
 
-				if(strcmp($promodate, date("Y-m-d")) <= 0 && $row["Rank"] <= 6)
-					echo "<tr style='background-color: #44FF00;'>";
-				elseif($rowcolor)
-					echo "<tr style='background-color: #c0c0c0;'>";
-				else
-					echo "<tr>";
-			
-				$rowcolor = !$rowcolor;
-				echo "<td><a href='display.php?person=" . $row["Name"] . "'>" . $row["Name"] . "</a></td>";
-				echo "<td>" . Get_Rank_Name($mysqli, $row["Rank"]) . "</td>";
-				echo "<td>" . Get_Last_Promo_Date($row["PromotionHistory"]) . "</td>\n";
-				echo "<td>" . $promodate . "</td></tr>\n";
-			}
+			$newrank = $row["Rank"] + 1;
+			$status = $mysqli->query("UPDATE `members` SET `Rank`='$newrank' WHERE `Name` = '$person'");
+
+			$meetings = get_sunday_meetings_by_month_year(date("Y"), date("m"));
+
+			if($row["PromotionHistory"] === "")
+				$new_promohistory = $row["Rank"]+1 . ":" . $meetings[0];
+			else
+				$new_promohistory = $row["PromotionHistory"] . "&" . $row["Rank"]+1 . ":" . $meetings[0];
+
+			$status = $mysqli->query("UPDATE `members` SET `PromotionHistory`='$new_promohistory' WHERE `Name` = '$person'");
+
 		}
-
-		echo "</table>";
+		
 	}
 
+	function Get_Members_Ready_For_Promotions($mysqli, $rank)
+	{
+		$header_displayed = false;
 
+		$result = $mysqli->query("SELECT * FROM `members` WHERE `Rank`=$rank ORDER BY `Name`");
+
+		while($row = $result->fetch_array(MYSQLI_ASSOC))
+		{
+			$lastpromodate = Get_Last_Promo_Date($row["PromotionHistory"]);
+
+			if(strtotime($lastpromodate) === false)
+				continue;
+
+			$promodate = Get_Next_Possible_Promo_Date($mysqli, $lastpromodate, $row["Rank"]);
+
+			if(strtotime($promodate) === false)
+				continue;
+
+			if(strcmp($promodate, date("Y-m-d")) >= 0)
+				continue;
+
+			if($header_displayed === false)
+			{
+				echo "<table border=1>\n";
+				echo "<tr>";
+
+				echo "<th>" . Get_Rank_Name($mysqli, $rank) . " to " . Get_Rank_Name($mysqli, intval($rank)+1) . "</th>";
+				echo "<th>Two Week Infractions</th>";
+				echo "<th colspan=8>Past Attendance</th>";
+				echo "</tr>\n";
+				$header_displayed = true;
+			}	
+
+			echo "\t<tr>\n";
+			echo "\t\t<td>\n";
+			echo "\t\t\t" . $row["Name"] . "\n";
+			echo "\t\t</td>\n";
+
+			echo "\t\t<td>\n";
+			echo "\t\t\t" . Get_Two_Week_List($mysqli, $row["Name"]);
+			echo "\t\t</td>\n";
+
+			$pastattendance = Get_Past_Eight_Meeting_Attendance($mysqli, date("Y"), $row["Name"]);
+			foreach($pastattendance as $entry)
+			{
+				echo "\t\t<td>\n";
+				echo "\t\t\t<p>$entry</p>\n";
+				echo "\t\t</td>\n";
+			}
+
+			echo "\t\t<td>\n";
+			echo "<form name='input' action='promotions.php' method='post'>";
+			echo "<input type='hidden' name='person' value='" . $row['Name'] . "'>";
+			echo "<input type='submit' value='promote'>";
+			echo "</form>";
+			echo "\t\t</td>\n";
+
+			echo "\t</tr>\n";
+		}
+		if($header_displayed === true)
+		{
+			echo "</table>\n";
+			echo "<br>\n";
+		}
+	}
 
 	$mysqli = connect_to_mysql();
-	display_members_ready_for_promotions($mysqli);
+
+	if(isset($_POST['person']))
+	{
+		Promote_Member($mysqli, $_POST['person']);
+		header("Location: display.php?&person=" . $_POST['person']);
+	}
+
+	for($i = 1; $i < 8; $i++)
+		Get_Members_Ready_For_Promotions($mysqli, $i);
+		echo "<a href='index.php'>Return to Main Menu</a>";
+
 	$mysqli->close();
 ?>

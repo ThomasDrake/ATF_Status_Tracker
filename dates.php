@@ -1,6 +1,31 @@
 <?php
 	include('function-library.php');
 
+
+	function add_custom_date_to_year($mysqli, $year, $date)
+	{
+		$result = $mysqli->query("SELECT * FROM `meetings` WHERE `Year` = '$year'");
+		$row = $result->fetch_array(MYSQLI_ASSOC);
+
+		$meetingdates = explode(":", $row['Dates']);
+
+		array_push($meetingdates, $date);
+
+		sort($meetingdates);
+
+		$updatedmeetings = array_unique($meetingdates);
+
+		$final_meeting_string = "";
+		foreach($updatedmeetings as $existingdate)
+		{
+			if($final_meeting_string === "")
+				$final_meeting_string = $existingdate;
+			else
+				$final_meeting_string = $final_meeting_string . ":$existingdate";
+		}
+		$mysqli->query("UPDATE `meetings` SET `Dates`='$final_meeting_string' WHERE `Year` = '$year'");
+	}
+
 	function process_meetings_updates_for_year($mysqli, $year, $array)
 	{
 		$meeting_date_array = array();
@@ -16,7 +41,7 @@
 		foreach($meeting_date_array as $date)
 			$final_meeting_string = $final_meeting_string . "$date:";
 
-		$mysqli->query("UPDATE `Meetings` SET `Dates`='$final_meeting_string' WHERE `Year` = '$year'");
+		$mysqli->query("UPDATE `meetings` SET `Dates`='$final_meeting_string' WHERE `Year` = '$year'");
 
 	}
 
@@ -24,9 +49,7 @@
 	{
 		$result = $mysqli->query("SELECT * FROM `meetings` WHERE `Year` = '$year'");
 		$row = $result->fetch_array(MYSQLI_ASSOC);
-		$meetingdates = $row['Dates'];
-
-		$all_date_array = get_all_meetings_in_year($year);
+		$meetingdates = explode(":", $row['Dates']);
 
 		echo "<form name='input' action='dates.php' method='post'>\n";
 		echo "<input type='hidden' name='action_category' value='process_results'>";
@@ -34,7 +57,7 @@
 		
 		echo "<table border=1>\n";
 		$rowcolor = true;
-		foreach($all_date_array as $date)
+		foreach($meetingdates as $date)
 		{
 			if( $date === "")
 				continue;
@@ -68,6 +91,19 @@
 		echo '</table>';
 		echo "<input type='submit' value='submit'>\n";
 		echo "</form>";		
+
+		echo "<br><br>";
+
+		echo "Add a custom meeting date<br>";
+		echo "<form name='input' action='dates.php' method='post'>\n";
+		echo "<input type='hidden' name='action_category' value='add_custom_date'>";
+		echo "<input type='hidden' name='year' value='$year'>";
+		echo "<input type='text' value='YYYY-MM-DD' name='new_meeting_date'>";
+		echo "<input type='submit' value='submit'>\n";
+		echo "</form>";
+
+		echo "<br><br>";
+
 		echo "<a href='index.php'>Return to Main Menu</a>";
 	}
 
@@ -98,9 +134,19 @@
 		process_meetings_updates_for_year($mysqli, $_POST['year'], $_POST);
 		header("Location: index.php");
 	}	
+	elseif(isset($_POST['action_category']) && $_POST['action_category'] === "add_custom_date")
+	{
+		if(strtotime($_POST['new_meeting_date']) === false)
+			echo "<font color='red'>date " . $_POST['new_meeting_date'] . " is not a real date!</font><br>";
+		else
+			add_custom_date_to_year($mysqli, $_POST['year'], $_POST['new_meeting_date']);
+		display_meetings_in_year($mysqli, $_POST['year']);
+	}
 
 	elseif(isset($_POST['action_category']) && $_POST['action_category'] === "edit_year")
-		display_meetings_in_year($mysqli, $_POST['year']);
+	{
+		display_meetings_in_year($mysqli, $_POST['year']);	
+	}
 
 	else
 	{
