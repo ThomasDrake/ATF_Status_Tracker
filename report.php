@@ -6,7 +6,7 @@
 	function display_members_ready_for_promotions($mysqli)
 	{
 		echo "<table border=1>";
-		echo "<tr><th>Name</th><th>Rank</th><th>Date of Last Promotion</th><th>Next possible promo date</th><th>Past 8 Meeting Attendence</th><th>2 Week Infractions</th><<th colspan='2'>Promo or Hold</th></tr>";
+		echo "<tr><th>Name</th><th>Rank</th><th>Date of Last Promotion</th><th>Next possible promo date</th><th>Past 8 Meeting Attendence</th><th>2 Week Infractions</th><<th colspan='3'>Promo Demote or Push for 3 months</th></tr>";
 
 		$rowcolor = true;
 
@@ -31,7 +31,7 @@
 				echo "<td>" . $promodate . "</td>\n";
 				echo "<td> &nbsp;</td>\n";
 				echo "<td> &nbsp; </td>\n";
-				echo '<td><input type="button" value="Promote"></td><td><input type="button" value="Hold"></td></tr>\n';
+				echo '<td><input type="button" value="Promote"></td><td><input type="button" value="Demote"></td><td><input type="button" value="Push"></td></tr>\n';
 			}
 		}
 
