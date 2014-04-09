@@ -70,22 +70,11 @@
 
 			echo "<td>$date</td>";
 
-			if(strpos($meetingdates, $date) !== false)
-			{
-				echo "<td>
-					  <input type='radio' name='$date' value='2' checked='checked'>Keep
-					  <input type='radio' name='$date' value='1'>Remove
-					  </td>
-					 ";
-			}
-			else
-			{
-				echo "<td>
-					  <input type='radio' name='$date' value='2'>Keep
-					  <input type='radio' name='$date' value='1' checked='checked'>Remove
-					  </td>
-					 ";
-			}
+			echo "<td>
+				  <input type='radio' name='$date' value='2' checked='checked'>Keep
+				  <input type='radio' name='$date' value='1'>Remove
+				  </td>
+				 ";
 			echo "</tr>";
 		}
 		echo '</table>';
