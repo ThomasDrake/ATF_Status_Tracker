@@ -65,7 +65,7 @@
 			echo "\t\t</td>\n";
 
 			echo "\t\t<td>\n";
-			echo "\t\t\t" . Get_Two_Week_List($mysqli, $row["Name"]);
+			echo "\t\t\t" . $row["TwoWeekList"];
 			echo "\t\t</td>\n";
 
 			$pastattendance = Get_Past_Eight_Meeting_Attendance($mysqli, date("Y"), $row["Name"]);
